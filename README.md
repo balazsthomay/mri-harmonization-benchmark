@@ -29,6 +29,41 @@ The pipeline uses 20 T1-weighted subjects per site (60 total). License: CC BY-SA
 
 ## Pipeline
 
+```mermaid
+flowchart LR
+    subgraph A["Data Acquisition"]
+        A1[IXI T1 tar\n4.5 GB] --> A2[Extract\n20/site]
+        A2 --> A3[60 NIfTI\nvolumes]
+    end
+
+    subgraph B["Preprocessing"]
+        A3 --> B1[N4 Bias\nCorrection]
+        B1 --> B2[HD-BET\nSkull Strip]
+        B2 --> B3[Brain +\nMask]
+    end
+
+    subgraph CD["Harmonize + Extract  (fused)"]
+        B3 --> CD1{Method}
+        CD1 -->|none| CD2[pyradiomics\n88 features]
+        CD1 -->|Z-score| CD2
+        CD1 -->|WhiteStripe| CD2
+        CD1 -->|Nyul| CD2
+        CD2 --> CD3[Feature\nCSVs]
+    end
+
+    subgraph E["Analysis"]
+        CD3 --> E1[ComBat]
+        E1 --> E2[8 feature\nmatrices]
+        E2 --> E3[ICC / CV /\nKruskal-Wallis]
+        E3 --> E4[Summary +\nFigures]
+    end
+
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style CD fill:#e8f5e9
+    style E fill:#fce4ec
+```
+
 ```
 mri-harmonize download       # Download IXI T1 (~4.5 GB tar), extract 20/site, delete tar
 mri-harmonize preprocess     # N4 bias field correction + HD-BET brain extraction
@@ -94,6 +129,38 @@ src/mri_harmonization/
 tests/
     conftest.py                     # Synthetic NIfTI fixtures
     unit/                           # 84 tests across all modules
+```
+
+## Experimental Design
+
+```mermaid
+graph TD
+    subgraph Input["60 Subjects x 3 Sites"]
+        S1["Guys (Philips 3T)"]
+        S2["HH (Philips 1.5T)"]
+        S3["IOP (GE 1.5T)"]
+    end
+
+    Input --> P["Preprocessed Brain Volumes"]
+
+    P --> |"no normalization"| F1["Features (none)"]
+    P --> |"Z-score"| F2["Features (zscore)"]
+    P --> |"WhiteStripe"| F3["Features (whitestripe)"]
+    P --> |"Nyul"| F4["Features (nyul)"]
+
+    F1 --> C1["+ ComBat"]
+    F2 --> C2["+ ComBat"]
+    F3 --> C3["+ ComBat"]
+    F4 --> C4["+ ComBat"]
+
+    F1 & F2 & F3 & F4 --> R["Reproducibility\nAnalysis"]
+    C1 & C2 & C3 & C4 --> R
+
+    R --> |"8 conditions"| OUT["ICC, CV, Kruskal-Wallis\nper feature per condition"]
+
+    style Input fill:#e3f2fd
+    style R fill:#fce4ec
+    style OUT fill:#f3e5f5
 ```
 
 ## Methods
